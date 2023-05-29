@@ -13,7 +13,7 @@ app.get("/", (req, res) => {
 })
 
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://bistroBoss:SoRdz7tIU1uFJaFl@cluster0.dgqtjig.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -31,9 +31,43 @@ async function run() {
         await client.connect();
 
         const menuCollection = client.db("bistroDB").collection("menu");
+        const cartsCollection = client.db("bistroDB").collection("carts");
 
         app.get("/menu", async (req, res) => {
             const result = await menuCollection.find().toArray()
+            res.send(result)
+        })
+
+        // carts collection
+        app.get('/carts', async (req, res) => {
+            const result = await cartsCollection.find().toArray()
+            res.send(result)
+        })
+
+        app.get('/carts', async (req, res) => {
+            const email = req.query.email
+            console.log(email);
+            if (!email) {
+                res.send([])
+            }
+            const query = { email: email }
+            console.log(query);
+            const result = await cartsCollection.find(query).toArray()
+            res.send(result)
+
+
+        })
+        app.delete('/carts/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: new ObjectId(id) }
+            console.log(query);
+            const result = await cartsCollection.deleteOne(query)
+            res.send(result)
+        })
+
+        app.post("/carts", async (req, res) => {
+            const item = req.body
+            const result = await cartsCollection.insertOne(item)
             res.send(result)
         })
 
