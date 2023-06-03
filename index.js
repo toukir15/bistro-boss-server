@@ -3,6 +3,7 @@ const app = express();
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 require('dotenv').config()
+const stripe = require("stripe")(process.env.PAYMENT_GATEWAY_KEY)
 const port = process.env.PORT || 5000;
 
 // middleware
@@ -130,11 +131,22 @@ async function run() {
       res.send(result);
     })
 
-    app.post('/menu', async (req, res) => {
+    app.post('/menu', verifyJWT, verifyAdmin, async (req, res) => {
       const newItem = req.body
       const result = await menuCollection.insertOne(newItem)
       res.send(result)
     })
+
+    app.delete('/menu/:id', verifyJWT, verifyAdmin, async (req, res) => {
+      const id = req.params.id
+      console.log(id);
+      const query = { _id: id }
+      // console.log(query);
+      const result = await menuCollection.deleteOne(query)
+      console.log(result);
+      res.send(result)
+    }
+    )
 
     // review related apis
     app.get('/reviews', async (req, res) => {
@@ -172,6 +184,22 @@ async function run() {
       const query = { _id: new ObjectId(id) };
       const result = await cartCollection.deleteOne(query);
       res.send(result);
+    })
+
+
+    // payment 
+    app.post('create-payment-intent', async (req, res) => {
+      const { price } = req.body
+      const amount = price * 100;
+      const paymentIntent = await stripe.paymentIntent.create({
+        amount: amount,
+        currency: "usd",
+        automatic_payment_methods: ['card']
+      })
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      })
+
     })
 
     // Send a ping to confirm a successful connection
